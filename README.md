@@ -1,12 +1,8 @@
 # Autologin
 Autologin WMS, WIFI ID, dll with OpenWRT
 
-===============================
-Script Autologin 
-===============================
-
 Instalasi
-=========
+==========
 1. Merk Router bebas
 2. Router sudah terinstall OS OpenWRT
 3. Sambungkan dengan Internet, akan ada update dan download library
@@ -52,8 +48,3 @@ B. Jika masih belum tersambung, kemungkinan pemblokiran MAC ADDRESS Router oleh 
        sh auto_login
 
     4. Lihat hasil
-
-
-===============================
-Script Autologin
-===============================
