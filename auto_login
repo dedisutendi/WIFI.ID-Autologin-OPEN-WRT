@@ -1,0 +1,298 @@
+#!/bin/sh
+# ===========================================
+# Autologin by sutendi
+# Link github : https://github.com/dedisutendi
+# Copy ke folder Root OpenWrt
+# chmod 755 auto_login atau chmod +x auto_login 
+# ./auto_login install
+# sh auto_login
+# GUI buka http://IP-ROUTER-ANDA/cgi-bin/register
+# ===========================================
+
+case $1 in
+"install")
+cp -f auto_login /usr/bin/
+sleep 1
+chmod 755 /usr/bin/auto_login
+if (! hash macchanger) 2>/dev/null
+then
+	opkg update
+	opkg install curl 
+	opkg install openssl-util libustream-openssl 
+	opkg install nano 
+	opkg install macchanger 
+	opkg remove wpa-basic
+	opkg install wpad
+	# Jika salah satu package terjadi kegagalan instalasi.
+	# silahkan lakukan instalasi manual via GUI ==> Software ==> Filter
+fi
+
+cat > /www/cgi-bin/register << END
+#!/bin/sh
+echo "Content-type: text/html"
+echo ""
+echo "
+<html><head><title>Autologin by Sutendi</title><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><link rel=\"shortcut icon\" type=\"image/png\" href=\"/luci-static/bootstrap/favicon.ico\"><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" /><meta http-equiv=\"pragma\" content=\"no-cache\" /><meta http-equiv=\"expires\" content=\"0\" /><style>body {-webkit-background-size: cover;-moz-background-size: cover;-o-background-size: cover;background-size: cover;background-repeat: no-repeat;background: radial-gradient(#7FFFD4, #8FBC8F);background-position: fixed;background-attachment: fixed;margin: 0;width: 100%;height: auto;text-align: center;font-family: \"Montserrat\", sans-serif;font-size: small} * {box-sizing: border-box}.box-form {max-width: 600px;min-width: 440px;background: rgb(245, 245, 245);position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);padding: 10px 15px 0 5px;box-sizing: border-box;border-radius: 8px;text-align: left;box-shadow: 0 0 20px #000000b3;margin-top: 50px;}.box-form h2 {margin-top: 0;text-align: center}.footer {margin-top: 700px;text-align: enter}input[type=text],[type=password],select,textarea {width: 100%;padding: 5px 0 8px 8px;border: 1px solid #ccc;border-radius: 5px;resize: vertical;background: #ccf0cd}label {padding: 8px 0 8px 8px;display: inline-block;font-weight: bold}input[type=submit] {background-color: #8FBC8F; color: white;padding: 12px 20px;border: none;border-radius: 4px;cursor: pointer; float: right}input[type=submit]:hover {background-color: #7FFFD4}.col-25 {float: left; width: 25%}.col-37 {float: left; width: 37.5%}.col-60 {float: left;width: 60%}.col-70 {float: left;width: 70%}.col-75 {float: left;width: 75%}.row:after {content: \"\";display: table;clear: both}@media screen and (max-width: 400px) {.col-25,.col-37,.col-60,.col-70,.col-75,input[type=submit] {width: 100%;margin-top: 0}}.hidden {visibility: hidden}</style></head><body>"
+    PRODUKSI=\$(uci get auto_login.setting.produk)
+    if [ "\$PRODUKSI" == "WMS-VENUE" ]; then
+    PRODUK="WMS-VENUE"
+    elif [ "\$PRODUKSI" == "WIFI-ID" ]; then
+    PRODUK="WIFI-ID"
+    elif [ "\$PRODUKSI" == "KAMPUS" ]; then
+    PRODUK="KAMPUS"
+    elif [ "\$PRODUKSI" == "SMARTBISNIS" ]; then
+    PRODUK="SMARTBISNIS"
+    else
+    PRODUK="WICO-2.0"
+    fi
+    IFACE=\$(uci get auto_login.setting.iface)
+    if [ "\$IFACE" == "wlan0" ]; then
+    IFACE="wlan0"
+    elif [ "\$IFACE" == "wlan1" ]; then
+    IFACE="wlan1"
+    elif [ "\$IFACE" == "br-lan" ]; then
+    IFACE="br-lan"
+    elif [ "\$IFACE" == "eth0" ]; then
+    IFACE="eth0"
+    elif [ "\$IFACE" == "eth0.1" ]; then
+    IFACE="eth0.1"
+    elif [ "\$IFACE" == "eth0.2" ]; then
+    IFACE="eth0.2"
+    elif [ "\$IFACE" == "eth1" ]; then
+    IFACE="eth1"
+    elif [ "\$IFACE" == "eth1.1" ]; then
+    IFACE="eth1.1"
+    else
+    IFACE="eth1.2"
+    fi
+    GWID=\$(uci get auto_login.setting.gwid)
+    WLANID1=\$(uci get auto_login.setting.wlanid1)
+    WLANID2=\$(uci get auto_login.setting.wlanid2)
+    SSID1=\$(uci get auto_login.setting.ssid1)
+    SSID2=\$(uci get auto_login.setting.ssid2)
+    SSID3=\$(uci get auto_login.setting.ssid3)
+    USER=\$(uci get auto_login.setting.user)
+    KAMPUS=\$(uci get auto_login.setting.kampus)
+    PASS=\$(uci get auto_login.setting.pass)
+    OLDMAC=\$(ifconfig | grep -A 1 \$IFACE | awk '/^[a-z]/ { mac=\$NF; next } /inet addr:/ { print mac }')
+    NEWMAC=\$(uci get auto_login.setting.macfake)
+    IPWAN=\$(ifconfig | grep -A 2 \$IFACE | awk '/inet addr/{print substr(\$2,6)}')
+    PONG=\$(ping -c1 8.8.8.8 2>&1 | grep time | cut -c"30-")
+    TEST=\$(curl -s --connect-timeout 15 http://detectportal.firefox.com/success.txt)
+    if [ "\$TEST" == "success" ]; then
+    PING="Connected - Ping 8.8.8.8 \$PONG"
+    else
+    PING="INTERNET DOWN"
+    fi
+
+    get_post(){
+    for qr in \$QUERY_STRING
+    do
+    if [ "\${qr%%=*}" == "\$1" ];then
+    echo \${qr##*=}| sed 's/+/ /g'
+    break
+    fi
+    done
+    }
+    if [ "\$REQUEST_METHOD" = POST ]; then
+    read -t 3 QUERY_STRING
+    QUERY_STRING=\$(echo \$QUERY_STRING | sed 's/&/ /g')
+    QUERY_STRING=\$(echo \$QUERY_STRING | sed 's/%3A/:/g')
+    QUERY_STRING=\$(echo \$QUERY_STRING | sed 's/%40/@/g')
+
+    if [ "\$(get_post apply)" == "SUBMIT" ];then
+    PRODUK=\$(get_post produk)
+    GWID=\$(get_post gwid)
+    WLANID1=\$(get_post wlanid1)
+    WLANID2=\$(get_post wlanid2)
+    SSID1=\$(get_post ssid1)
+    SSID2=\$(get_post ssid2)
+    SSID3=\$(get_post ssid3)
+    IFACE=\$(get_post iface)
+    USER=\$(get_post user)
+    if [ "\$(get_post produk)" == "KAMPUS" ]; then
+    KAMPUS=\$(get_post kampus)
+    NAMA_AKUN=\$(get_post user)@\$(get_post kampus)
+    else
+    KAMPUS=""
+    NAMA_AKUN=\$(get_post user)
+    fi
+    PASS=\$(get_post pass)
+    NEWMAC=\$(get_post macfake)
+    uci set auto_login.setting.produk=\$PRODUK
+    uci set auto_login.setting.gwid=\$GWID
+    uci set auto_login.setting.wlanid1=\$WLANID1
+    uci set auto_login.setting.wlanid2=\$WLANID2
+    uci set auto_login.setting.ssid1=\$SSID1
+    uci set auto_login.setting.ssid2=\$SSID2
+    uci set auto_login.setting.ssid3=\$SSID3
+    uci set auto_login.setting.iface=\$IFACE
+    uci set auto_login.setting.user=\$USER
+    uci set auto_login.setting.kampus=\$KAMPUS
+    uci set auto_login.setting.nama_akun=\$NAMA_AKUN
+    uci set auto_login.setting.pass=\$PASS
+    uci set auto_login.setting.macfake=\$NEWMAC
+    uci commit auto_login
+    killall auto_login
+    auto_login &
+    date > /tmp/auto_login
+    echo "config submit By Sutendi" >> /tmp/auto_login
+    fi
+    fi
+    echo "
+<div class=\"box-form\" style=\”margin-top:50px\”><form method=\"post\" autocomplete=\"off\"><h2>AIO AUTOLOGIN v1.0<br>Wifi ID - WMS Venue - Wico 2.0 - KAMPUS - SMARTBISNIS</h2><hr><div class=\"row\" style=\"text-align:center; font-size:16px\"><label for=\"data\">CONFIGURATION</label></div><div class=\"row\"><div class=\"col-25\"><label for=\"produk\">PRODUCT</label></div><div class=\"col-25\"><select id=\"produk\" name=\"produk\" onclick=\"tampil()\"><option value=\"\$PRODUK\">\$PRODUK</option><option value=\"WMS-VENUE\">WMS-VENUE </option><option value=\"WIFI-ID\">WIFI-ID </option> <option value=\"KAMPUS\">KAMPUS</option><option value=\"SMARTBISNIS\">SMARTBISNIS</option><option value=\"WICO-2.0\">WICO-2.0</option></select></div></div><div class=\"row\"><div class=\"col-25\"><label for=\"gwid\">GW ID</label></div><div class=\"col-37\"><input type=\"text\" id=\"gwid\" name=\"gwid\" value=\"\$GWID\" placeholder=\"GW ID Anda\" required></div></div><div class=\"row\"><div class=\"col-25\"><label for=\"wlanid\">WLAN ID</label></div><div class=\"col-37\"><input type=\"text\" id=\"wlanid1\" name=\"wlanid1\" value=\"\$WLANID1\" placeholder=\"1st WLAN ID\" required></div><div class=\"col-37\"><input type=\"text\" id=\"wlanid2\" name=\"wlanid2\" value=\"\$WLANID2\" placeholder=\"2nd WLAN ID\" required></div></div><div class=\"row\"> <div class=\"col-25\"><label for=\"ssid\">SSID</label></div><div class=\"col-25\"><input type=\"text\" id=\"ssid1\" name=\"ssid1\" value=\"\$SSID1\" placeholder=\"1st SSID\"></div><div class=\"col-25\"><input type=\"text\" id=\"ssid2\" name=\"ssid2\" value=\"\$SSID2\" placeholder=\"2nd SSID\"></div><div class=\"col-25\"><input type=\"text\" id=\"ssid3\" name=\"ssid3\" value=\"\$SSID3\" placeholder=\"3rd SSID\"></div></div><div class=\"row\"><div class=\"col-25\"><label for=\"iface\">INTERFACE</label> </div><div class=\"col-25\"><select id=\"iface\" name=\"iface\" onchange=\"myIface()\"><option value=\"\$IFACE\">\$IFACE</option><option value=\"wlan0\">wlan0</option><option value=\"wlan1\">wlan1</option><option value=\"br-lan\">br-lan</option><option value=\"eth0\">eth0</option><option value=\"eth0.1\">eth0.1</option><option value=\"eth0.2\">eth0.2</option><option value=\"eth1\">eth1</option><option value=\"eth1.1\">eth1.1</option><option value=\"eth1.2\">eth1.2</option></select></div></div><div class=\"row\"><div class=\"col-25\"><label for=\"oldmac\">OLD MAC</label> </div><div class=\"col-37\"> <input type=\"text\" id=\"oldmac\" name=\"oldmac\" value=\"\$OLDMAC\" placeholder=\"No detected mac address...\" disabled> </div></div><div class=\"row\"><div class=\"col-25\"> <label for=\"macfake\">NEW MAC</label> </div><div class=\"col-37\"> <input type=\"text\" id=\"macfake\" name=\"macfake\"  value=\"\$NEWMAC\"placeholder=\"xx:xx:xx:xx:xx:xx\"> </div><div class=\"col-37\"> <label for=\"optional\"><i>optional</i></label> </div></div><hr><div class=\"row\" style=\"text-align:center; font-size:16px\"> <label for=\"user\">INFORMATION</label></div><div class=\"row\"><div class=\"col-25\"> <label for=\"ipwan\">IP WAN</label> </div><div class=\"col-37\"> <input type=\"text\" id=\"ipwan\" name=\"ipwan\" value=\"\$IPWAN\" disabled></div></div><div class=\"row\"><div class=\"col-25\"> <label for=\"status\">STATUS</label> </div><div class=\"col-75\"> <input type=\"text\" id=\"ping\" name=\"ping\" value=\"\$PING\" disabled> </div></div><hr><div class=\"row\" style=\"text-align:center; font-size:16px\"> <label for=\"user\">ACCOUNT</label></div><div class=\"row\"><div class=\"col-25\"> <label for=\"user\">USERNAME</label> </div><div class=\"col-37\"> <input type=\"text\" id=\"user\" name=\"user\" value=\"\$USER\" placeholder=\"Username\" required> </div><div class=\"col-37 hidden\" > <input type=\"text\" id=\"kampus\" name=\"kampus\" value=\"\$KAMPUS\" placeholder=\"NAMA-KAMPUS\" required> </div></div><div class=\"row\"><div class=\"col-25\"><label for=\"pass\">PASSWORD</label></div><div class=\"col-37\"><input type=\"password\" id=\"pass\" name=\"pass\" value=\"\$PASS\" placeholder=\"Password\" required></div><input type=\"checkbox\" onclick=\"myPASS()\"></div><hr><div class=\"row\"><div class=\"col-60\"><input type=\"submit\" name=\"apply\" value=\"SUBMIT\"></div></div></form><p style=\"text-align:center\"><i><b>*</b> Silahkan isi kolom <b>\"NEW MAC\"</b> dengan Mac Addres yg anda inginkan atau tulis <b>\"random\"</b> jika anda ingin mengganti secara acak.</i></p></div><div class=\"footer\"><font color=\"blue\">&copy 2020 <a style=\"text-decoration:none;\" href=\"https://github.com/dedisutendi\"target=\"_blank\"><font color=\"red\">Sutendi</font></a> - Autologin v1.0</div><script>function tampil() {var y = document.getElementById('produk'); if (y.value === \"KAMPUS\") document.getElementById('kampus').style.visibility = 'visible'; else document.getElementById('kampus').style.visibility = 'hidden';}function myPASS() {var x = document.getElementById(\"pass\");if (x.type === \"password\"){x.type=\"text\";}else {x.type = \"password\";}}</script></body></html>"
+END
+
+cat > /etc/config/auto_login << END
+config global 'setting'
+	option produk 'WIFI-ID'
+	option gwid 'WAG-XX-XX'
+	option wlanid1 'SESUAIKAN'
+	option wlanid2 'LANDINGPAGE'
+	option ssid1 'SUTENDI'
+	option ssid2 'NONG'
+	option ssid3 'KRONG'
+	option iface 'wlan0'
+	option macfake ''
+	option user '123456789'
+	option pass 'abc'
+	   
+END
+
+cat > /root/auto_login <<\EOF
+#!/bin/sh /etc/rc.common
+produk=$(uci -q get auto_login.setting.produk);
+gwid=$(uci -q get auto_login.setting.gwid);
+wlanid=$(uci -q get auto_login.setting.wlanid1)"/"$(uci -q get auto_login.setting.wlanid2);
+ssid=$(uci -q get auto_login.setting.ssid1)" "$(uci -q get auto_login.setting.ssid2)" "$(uci -q get auto_login.setting.ssid3);
+iface=$(uci -q get auto_login.setting.iface);
+ipwan=$(ifconfig|grep -A 2 $(uci -q get auto_login.setting.iface)|awk '/inet addr/{print substr($2,6)}');
+mac=$(ifconfig|grep -A 1 $(uci -q get auto_login.setting.iface)|awk '/^[a-z]/ { mac=$NF;next } /inet addr:/ { print mac }');
+newmac=$(uci -q get auto_login.setting.macfake);
+username=$(uci -q get auto_login.setting.user);
+nama_akun=$(uci -q get auto_login.setting.nama_akun);
+kampus=$(uci -q get auto_login.setting.kampus);
+pass=$(uci -q get auto_login.setting.pass);
+laper='\e[38;5;82m';
+err='\e[38;5;196m';
+lempar='\033[0m';
+lemper='\e[38;5;226m';
+
+printf "${laper}";
+printf " ================================================\n";
+printf "|         	   AUTOLOGIN v1.0                |\n";
+printf "|WMS - WIFI ID - KAMPUS - SMARTBISNIS - WICO 2.O |\n";
+printf "|	   ${lemper}by Sutendi${laper}	 |\n";
+printf " ================================================\n\n";
+printf "            	     INFORMATION 		 \n\n";
+printf "${laper}Produk		: ${lemper}$produk \n";
+printf "${laper}GW_ID		: ${lemper}$gwid \n";
+printf "${laper}Wlan ID         : ${lemper}$wlanid \n";
+printf "${laper}SSID		: ${lemper}$ssid \n";
+printf "${laper}Interface	: ${lemper}$iface \n";
+printf "${laper}Ip $iface	: ${lemper}$ipwan \n";
+printf "${laper}Mac $iface	: ${lemper}$mac \n";
+printf "${laper}New Mac         : ${lemper}$newmac \n\n";
+printf "${laper}";
+printf "              	      ACCOUNT 			\n\n";
+printf "${laper}Username	: ${lemper}$nama_akun \n";
+printf "${laper}Password	: ${lemper}$pass \n\n";
+printf "${lemper}";
+date;
+printf "${lempar}";
+printf "Please wait...\n";
+if [ ! "$newmac" = "" ];
+then if [ "$newmac" = "random" ];
+then printf "Change random mac address for $iface...\n";
+printf "${lempar}";
+ifconfig $iface down&>/dev/null;
+sleep 2;
+acak=$(macchanger $iface -A -p|grep New|cut -c16-32|tr '[a-z]' '[A-Z]');
+sleep 2;
+printf "${laper}New Mac $iface	: ${lemper}$acak \n";
+uci set auto_login.setting.macfake="$acak";
+sleep 2;
+printf "${lempar}";
+printf "$iface re-conecting $produk...\n";
+ifconfig $iface up;
+sleep 10;
+elif [ "$mac" != "$newmac" ];
+then printf "Change static mac address for $iface...\n";
+printf "${lempar}";
+ifconfig $iface down&>/dev/null;
+sleep 2;
+macchanger $iface --mac=$newmac -p&>/dev/null;
+printf "${lemper}";
+printf "Done! \n";
+printf "${lempar}";
+printf "$iface re-conecting $produk...\n";
+sleep 2;
+ifconfig $iface up;
+sleep 10;
+fi;
+fi;
+while :;
+do status=$(curl -s --connect-timeout 15 http://detectportal.firefox.com/success.txt);
+if [ "$status" = 'success' ];
+then printf "${lempar}\n";
+printf "Success! connected $produk \n\n";
+break;
+else printf "${lempar}";
+curl -k -v --silent "https://welcome2.wifi.id/authnew/logout/logoutx.php" 2>&1|grep Logout|cut -d \< -f 3|cut -d \> -f 2;
+sleep 2;
+if [ $produk == WMS-VENUE ];
+then key=$(openssl rand -hex 2);
+curl -k -v -s "https://welcome2.wifi.id/wms/auth/authnew/autologin/quarantine.php?ipc="$ipwan"&gw_id="$gwid"&mac="$mac"&redirect=&wlan="$wlanid":"$ssid --data "username="$username"."$key"@freeMS&password="$pass 2>&1|grep message|cut -d \" -f 6;
+elif [ $produk == WICO-2.0 ];
+then curl -k -v -s "https://welcome2.wifi.id/wms/auth/authnew/autologin/quarantine.php?ipc="$ipwan"&gw_id="$gwid"&mac="$mac"&redirect=&wlan="$wlanid":"$ssid --data "username="$username"&password="$pass 2>&1|grep message|cut -d \" -f 6;
+elif [ $produk == KAMPUS ];
+then curl -k -v -s "https://welcome2.wifi.id/authnew/login/check_login.php?ipc="$ipwan"&gw_id="$gwid"&mac="$mac"&redirect=&wlan="$wlanid":$ssid" --data "username="$username"@komunitas."$kampus"&password="$pass 2>&1|grep message|cut -d \" -f 6;
+elif [ $produk == SMARTBISNIS];
+then curl -k -v -s "https://welcome2.wifi.id/authnew/login/check_login.php?ipc="$ipwan"&gw_id="$gwid"&mac="$mac"&redirect=&wlan="$wlanid":$ssid" --data "username="$username"@komunitas.smartbisnis&password="$pass 2>&1|grep message|cut -d \" -f 6;
+elif [ $produk == WIFI-ID ];then curl -k -v -s "https://welcome2.wifi.id/authnew/login/check_login.php?ipc="$ipwan"&gw_id="$gwid"&mac="$mac"&redirect=&wlan="$wlanid":@wifi.id" --data "username="$username"@spin2&password="$pass 2>&1|grep message|cut -d \" -f 6;
+else printf "${err}";printf "Format pengisian Data Network salah...";
+printf "${laper}";
+printf "silahkan buka di http://IP-ROUTER-ANDA/cgi-bin/register";
+printf "${lempar} \n";
+fi;
+break;
+fi;
+sleep 5;
+done
+EOF
+cat > /etc/crontabs/cron.update << END
+root
+END
+
+cat > /etc/crontabs/root << END
+* * * * * sh /root/auto_login
+30 4 * * * sleep 60 && touch /etc/banner && reboot
+END
+
+/etc/init.d/cron start
+/etc/init.d/cron enable
+uci set dhcp.@dnsmasq[0].rebind_domain='welcome2.wifi.id'
+uci set dhcp.@dnsmasq[0].rebind_protection='0'
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+
+sleep 1
+chmod 755 /www/cgi-bin/register
+laper='\e[38;5;82m';
+lempar='\033[0m';
+lemper='\e[38;5;226m'
+printf "\n"
+printf "${laper}"
+printf "Instalasi auto_login selesai \n\n"
+printf "${lemper}Proses selanjutnya : \n"
+printf "${lempar}1. Sambungkan ROUTER ke jaringan ${laper}WMS/WIFI ID/WICO \n"
+printf "${lempar}2. Masuk konfigurasi di ${laper}http://IP-ROUTER-ANDA/cgi-bin/register \n\n"
+printf "${lempar}Terima Kasih\n"
+printf "${laper}@2020 ${lemper}Autologin v1.0 by ${laper}Sutendi \n\n"
+printf "${lempar}"
+rm /usr/bin/auto_login;
+exit 0
+;;
+esac
+#end
+
