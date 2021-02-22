@@ -246,9 +246,9 @@ curl -k -v -s "https://welcome2.wifi.id/wms/auth/authnew/autologin/quarantine.ph
 elif [ $produk == WICO-2.0 ];
 then curl -k -v -s "https://welcome2.wifi.id/wms/auth/authnew/autologin/quarantine.php?ipc="$ipwan"&gw_id="$gwid"&mac="$mac"&redirect=&wlan="$wlanid":"$ssid --data "username="$username"&password="$pass 2>&1|grep message|cut -d \" -f 6;
 elif [ $produk == KAMPUS ];
-then curl -k -v -s "https://welcome2.wifi.id/authnew/login/check_login.php?ipc="$ipwan"&gw_id="$gwid"&mac="$mac"&redirect=&wlan="$wlanid":$ssid" --data "username="$username"@komunitas."$kampus"&password="$pass 2>&1|grep message|cut -d \" -f 6;
+then curl -k -v -s "https://welcome2.wifi.id/authnew/login/check_login.php?ipc="$ipwan"&gw_id="$gwid"&mac="$mac"&redirect=&wlan="$wlanid":$ssid" --data "username="$username"@com."$kampus"&password="$pass 2>&1|grep message|cut -d \" -f 6;
 elif [ $produk == SMARTBISNIS];
-then curl -k -v -s "https://welcome2.wifi.id/authnew/login/check_login.php?ipc="$ipwan"&gw_id="$gwid"&mac="$mac"&redirect=&wlan="$wlanid":$ssid" --data "username="$username"@komunitas.smartbisnis&password="$pass 2>&1|grep message|cut -d \" -f 6;
+then curl -k -v -s "https://welcome2.wifi.id/authnew/login/check_login.php?ipc="$ipwan"&gw_id="$gwid"&mac="$mac"&redirect=&wlan="$wlanid":$ssid" --data "username="$username"@com.smartbisnis&password="$pass 2>&1|grep message|cut -d \" -f 6;
 elif [ $produk == WIFI-ID ];then curl -k -v -s "https://welcome2.wifi.id/authnew/login/check_login.php?ipc="$ipwan"&gw_id="$gwid"&mac="$mac"&redirect=&wlan="$wlanid":@wifi.id" --data "username="$username"@spin2&password="$pass 2>&1|grep message|cut -d \" -f 6;
 else printf "${err}";printf "Format pengisian Data Network salah...";
 printf "${laper}";
